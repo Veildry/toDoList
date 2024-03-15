@@ -1,0 +1,190 @@
+import tkinter as tk
+from tkinter import simpledialog, messagebox
+import json
+import csv
+
+class Task:
+    """Represents a task with title, description, due date, priority, and completion status."""
+    def __init__(self, title, description, due_date, priority=0, completed=False):
+        self.title = title
+        self.description = description
+        self.due_date = due_date
+        self.priority = priority
+        self.completed = completed
+
+class TaskManager:
+    """Manages tasks including adding, removing, displaying, saving, loading, filtering, and exporting."""
+    def __init__(self, master):
+        self.master = master
+        self.tasks = []
+
+    def add_task(self, title, description, due_date, priority=0):
+        """Add a new task."""
+        new_task = Task(title, description, due_date, priority)
+        self.tasks.append(new_task)
+
+    def remove_task(self, title):
+        """Remove a task by its title."""
+        for task in self.tasks:
+            if task.title == title:
+                self.tasks.remove(task)
+                return True
+        return False
+
+    def show_tasks(self):
+        """Return the list of tasks."""
+        return self.tasks
+
+    def save_tasks(self, filename="save.json"):
+        """Save tasks to a JSON file."""
+        tasks_data = []
+        for task in self.tasks:
+            task_data = {
+                'title': task.title,
+                'description': task.description,
+                'due_date': task.due_date,
+                'priority': task.priority,
+                'completed': task.completed
+            }
+            tasks_data.append(task_data)
+        try:
+            with open(filename, 'w') as file:
+                json.dump(tasks_data, file, indent=4)
+            messagebox.showinfo("Confirmation", "Tasks saved successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error occurred while saving tasks: {str(e)}")
+
+    def load_tasks(self, filename="save.json"):
+        """Load tasks from a JSON file."""
+        try:
+            with open(filename, 'r') as file:
+                tasks_data = json.load(file)
+            self.tasks = [Task(task['title'], task['description'], task['due_date'], task['priority'], task['completed']) for task in tasks_data]
+            messagebox.showinfo("Confirmation", "Tasks loaded successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error occurred while loading tasks: {str(e)}")
+
+    def delete_all_tasks(self, filename="save.json"):
+        """Delete all tasks and clear the save file."""
+        self.tasks = []
+        try:
+            with open(filename, 'w') as file:
+                json.dump([], file, indent=4)
+            messagebox.showinfo("Confirmation", "All tasks deleted successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error occurred while deleting tasks: {str(e)}")
+
+    def filter_show_tasks(self, min_priority=0, max_priority=float('inf')):
+        """Filter and return tasks within a priority range."""
+        filtered_tasks = [task for task in self.tasks if min_priority <= task.priority <= max_priority]
+        return filtered_tasks
+
+    def export_tasks_to_csv(self, filename="tasks.csv"):
+        """Export tasks to a CSV file."""
+        fieldnames = ['title', 'description', 'due_date', 'priority', 'completed']
+        try:
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for task in self.tasks:
+                    writer.writerow({
+                        'title': task.title,
+                        'description': task.description,
+                        'due_date': task.due_date,
+                        'priority': task.priority,
+                        'completed': task.completed
+                    })
+            messagebox.showinfo("Confirmation", "Tasks exported successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error occurred while exporting tasks: {str(e)}")
+
+    def display_interface(self):
+        """Display the Tkinter interface."""
+        self.master.title("Task Manager")
+
+        def add_task():
+            title = simpledialog.askstring("Task Title", "Enter the task title:")
+            description = simpledialog.askstring("Task Description", "Enter the task description:")
+            due_date = simpledialog.askstring("Due Date", "Enter the due date (YYYY-MM-DD):")
+            priority = int(simpledialog.askstring("Task Priority", "Enter the task priority (0 to infinity):"))
+            self.add_task(title, description, due_date, priority)
+            messagebox.showinfo("Confirmation", "Task added successfully.")
+
+        def remove_task():
+            title = simpledialog.askstring("Task Title", "Enter the title of the task to remove:")
+            if self.remove_task(title):
+                messagebox.showinfo("Confirmation", "Task removed successfully.")
+            else:
+                messagebox.showerror("Error", "Task not found.")
+
+        def show_tasks():
+            tasks = self.show_tasks()
+
+            tasks_window = tk.Toplevel(self.master)
+            tasks_window.title("Tasks")
+
+            tasks_frame = tk.Frame(tasks_window)
+            tasks_frame.pack()
+
+            for idx, task in enumerate(tasks):
+                tk.Label(tasks_frame, text=f"Title: {task.title}").grid(row=idx, column=0, sticky="w")
+                tk.Label(tasks_frame, text=f"Description: {task.description}").grid(row=idx, column=1, sticky="w")
+                tk.Label(tasks_frame, text=f"Due Date: {task.due_date}").grid(row=idx, column=2, sticky="w")
+                tk.Label(tasks_frame, text=f"Priority: {task.priority}").grid(row=idx, column=3, sticky="w")
+
+        def save_tasks():
+            self.save_tasks()
+            messagebox.showinfo("Confirmation", "Tasks saved successfully.")
+
+        def load_tasks():
+            self.load_tasks()
+            messagebox.showinfo("Confirmation", "Tasks loaded successfully.")
+
+        def delete_all_tasks():
+            self.delete_all_tasks()
+            messagebox.showinfo("Confirmation", "All tasks deleted successfully.")
+
+        def filter_show_tasks():
+            min_priority = int(simpledialog.askstring("Minimum Priority", "Enter the minimum priority:"))
+            max_priority = int(simpledialog.askstring("Maximum Priority", "Enter the maximum priority:"))
+            filtered_tasks = self.filter_show_tasks(min_priority, max_priority)
+
+            filtered_tasks_window = tk.Toplevel(self.master)
+            filtered_tasks_window.title("Tasks Filtered by Priority")
+
+            filtered_tasks_frame = tk.Frame(filtered_tasks_window)
+            filtered_tasks_frame.pack()
+
+            for idx, task in enumerate(filtered_tasks):
+                tk.Label(filtered_tasks_frame, text=f"Title: {task.title}").grid(row=idx, column=0, sticky="w")
+                tk.Label(filtered_tasks_frame, text=f"Description: {task.description}").grid(row=idx, column=1, sticky="w")
+                tk.Label(filtered_tasks_frame, text=f"Due Date: {task.due_date}").grid(row=idx, column=2, sticky="w")
+                tk.Label(filtered_tasks_frame, text=f"Priority: {task.priority}").grid(row=idx, column=3, sticky="w")
+
+        def export_tasks():
+            self.export_tasks_to_csv()
+            messagebox.showinfo("Confirmation", "Tasks exported successfully.")
+
+        menu_frame = tk.Frame(self.master)
+        menu_frame.pack()
+
+        tk.Button(menu_frame, text="Add Task", command=add_task).pack()
+        tk.Button(menu_frame, text="Remove Task", command=remove_task).pack()
+        tk.Button(menu_frame, text="Show Tasks", command=show_tasks).pack()
+        tk.Button(menu_frame, text="Save Tasks", command=save_tasks).pack()
+        tk.Button(menu_frame, text="Load Tasks", command=load_tasks).pack()
+        tk.Button(menu_frame, text="Delete All Tasks", command=delete_all_tasks).pack()
+        tk.Button(menu_frame, text="Filter Tasks by Priority", command=filter_show_tasks).pack()
+        tk.Button(menu_frame, text="Export Tasks to CSV", command=export_tasks).pack()
+        tk.Button(menu_frame, text="Exit", command=self.master.destroy).pack()
+
+
+def main():
+    root = tk.Tk()
+    app = TaskManager(root)
+    app.display_interface()
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
